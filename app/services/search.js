@@ -1,51 +1,58 @@
 import Ember from 'ember';
+import { task } from 'ember-concurrency';
 
 export default Ember.Service.extend({
-  store: Ember.inject.service(),
-  addonData: Ember.computed(function() {
-    return this.get('store').peekAll('addon').sortBy('score').reverse().map(function(addon) {
-      return {
-        name: addon.get('name'),
-        description: addon.get('description'),
-        id: addon.get('id')
-      };
-    });
+  ajax: Ember.inject.service(),
+  _autocompleteData: null,
+  _latestSearchResults: null,
+  _fetchAutocompleteData: task(function * () {
+    if (!this.get('_autocompleteData')) {
+      let data = yield this.get('ajax').request('/api/v2/autocomplete_data');
+      this.set('_autocompleteData', {
+        addons: data.addons.sortBy('score').reverse(),
+        categories: data.categories,
+        maintainers: data.maintainers
+      });
+    }
+    return this.get('_autocompleteData');
   }),
-  categoryData: Ember.computed(function() {
-    return this.get('store').peekAll('category').map(function(category) {
-      return {
-        name: category.get('name'),
-        id: category.get('id')
-      };
-    });
-  }),
-  maintainerData: Ember.computed(function() {
-    return this.get('store').peekAll('maintainer').map(function(maintainer) {
-      return {
-        name: maintainer.get('name'),
-        id: maintainer.get('id')
-      };
-    });
-  }),
+  _searchAddons(query, possibleAddons) {
+    let addonResultsMatchingOnName = findMatches(query, 'name', possibleAddons);
+    let addonResultsMatchingOnDescription = findMatches(query, 'description', possibleAddons);
+    let addonIds = [].concat(addonResultsMatchingOnName, addonResultsMatchingOnDescription).uniq().mapBy('id');
+    return {
+      matchIds: addonIds,
+      matchCount: addonIds.length
+    };
+  },
+  _searchCategories(query, possibleCategories) {
+    let categoryIds = findMatches(query, 'name', possibleCategories).mapBy('id');
+    return {
+      matchIds: categoryIds,
+      matchCount: categoryIds.length
+    };
+  },
+  _searchMaintainers(query, possibleMaintainers) {
+    let maintainerIds = findMatches(query, 'name', possibleMaintainers).mapBy('id');
+    return {
+      matchIds: maintainerIds,
+      matchCount: maintainerIds.length
+    };
+  },
   search(query) {
-    return new Ember.RSVP.Promise((resolve) => {
-      let addonResultsMatchingOnName = findMatches(query, 'name', this.get('addonData'));
-      let addonResultsMatchingOnDescription = findMatches(query, 'description', this.get('addonData'));
-      let addons = [].concat(addonResultsMatchingOnName, addonResultsMatchingOnDescription).uniq().map((result) => {
-        return this.get('store').peekRecord('addon', result.id);
-      });
-      let categories = findMatches(query, 'name', this.get('categoryData')).map((result) => {
-        return this.get('store').peekRecord('category', result.id);
-      });
-      let maintainers = findMatches(query, 'name', this.get('maintainerData')).map((result) => {
-        return this.get('store').peekRecord('maintainer', result.id);
-      });
-      resolve({
-        addons,
-        categories,
-        maintainers,
-        length: (addons.get('length') + maintainers.get('length') + categories.get('length'))
-      });
+    return this.get('_fetchAutocompleteData').perform().then((data) => {
+      let addonResults = this._searchAddons(query, data.addons);
+      let categoryResults = this._searchCategories(query, data.categories);
+      let maintainerResults = this._searchMaintainers(query, data.maintainers);
+      let results = {
+        query,
+        addonResults,
+        maintainerResults,
+        categoryResults,
+        length: (addonResults.matchCount + maintainerResults.matchCount + categoryResults.matchCount)
+      };
+      this.set('_latestSearchResults', results);
+      return Ember.RSVP.resolve(results);
     });
   }
 });

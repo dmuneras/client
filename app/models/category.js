@@ -8,9 +8,10 @@ export default DS.Model.extend({
   name: attr('string'),
   description: attr('string'),
   position: attr('number'),
-  addons: hasMany('addon', { async: true }),
+  addonCount: attr('number'),
+  addons: hasMany('addon'),
   parent: belongsTo('category', { async: false }),
-  subcategories: hasMany('category', { inverse: 'parent', async: false }),
+  subcategories: hasMany('category', { inverse: 'parent' }),
   slug: function() {
     return this.get('name').dasherize();
   }.property('name'),
@@ -22,9 +23,9 @@ export default DS.Model.extend({
     }
   }.property('parent.name', 'name'),
   directAddonCount: computed.alias('addons.length'),
-  addonCount: function() {
-    return this.get('subcategories').mapBy('directAddonCount').reduce(function(categoryA, categoryB) {
-      return categoryA + categoryB;
-    }, this.get('addons.length'));
-  }.property('addons.length', 'subcategories.@each.directAddonCount')
+  // addonCount: function() {
+  //   return this.get('subcategories').mapBy('directAddonCount').reduce(function(categoryA, categoryB) {
+  //     return categoryA + categoryB;
+  //   }, this.get('addons.length'));
+  // }.property('addons.length', 'subcategories.@each.directAddonCount')
 });

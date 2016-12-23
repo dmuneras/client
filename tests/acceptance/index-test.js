@@ -4,38 +4,38 @@ import moduleForAcceptance from 'ember-addon-review/tests/helpers/module-for-acc
 moduleForAcceptance('Acceptance: Index');
 
 test('visiting /', function(assert) {
+  server.logging=true;
   server.createList('category', 7);
-  var addons = server.createList('addon', 4);
+
+  var addons = server.createList('addons', 4);
+
   var category = server.create('category',
     {
       name: 'Authentication',
-      addonIds: addons.mapBy('id'),
-      description: 'Addons for auth'
+      description: 'Addons for auth',
+      addonCount: 4
     });
 
-  server.create('category',
+  category.update({ addonIds: addons.mapBy('id') });
+
+  var addonA = server.create('addon');
+
+  var categoryA = server.create('category',
     {
       name: 'Simple Auth',
-      addonIds: [addons[0].id],
       description: 'Simple Auth addons',
+      addonCount: 1,
       parentId: category.id
     });
 
-  server.create('category',
-    {
-      name: 'Other Auth',
-      addonIds: [addons[1].id],
-      description: 'Other Auth addons',
-      parentId: category.id
-    });
+  categoryA.update({ addonIds: [addonA.id] });
 
   visit('/');
 
   andThen(function() {
     assert.exists('.test-category', 8, 'All categories should display');
-    assert.contains('.test-category', 'Authentication (6)', 'Categories should list title and count of addons');
+    assert.contains('.test-category', 'Authentication (4)', 'Categories should list title and count of addons');
     assert.contains('.test-subcategory:eq(0)', 'Simple Auth (1)', 'Subcategories should display under category');
-    assert.contains('.test-subcategory:eq(1)', 'Other Auth (1)', 'Subcategories should display under category');
   });
 
   click('.test-category:contains(Authentication)');
@@ -55,7 +55,7 @@ test('visiting /', function(assert) {
     assert.contains('.test-category-header', 'Simple Auth', 'Header should display');
     assert.contains('.test-category-description', 'Simple Auth addons', 'Description should display');
     assert.exists('.test-addon-row', 1, 'All addons in category should display');
-    assert.contains('.test-parent-category-link', 'Authentication (6)', 'Should link to parent category');
+    assert.contains('.test-parent-category-link', 'Authentication (4)', 'Should link to parent category');
     assert.contains('.test-addon-table-count', 'Displaying 1 addon', 'Should show addon count');
   });
 });
@@ -132,12 +132,13 @@ test('Unknown routes are handled', function(assert) {
 
 function testSearch(url, assertForContentOnUrl) {
   test(`visiting ${url} with a query`, function(assert) {
+    server.logging=true;
     server.create('addon', { name: 'ember-a-thing' });
     server.create('addon', { name: 'ember-test-me', description: 'A thin addon' });
     server.create('category', { name: 'Another thing' });
     server.create('category', { name: 'quietest' });
     server.create('category', { name: 'Testing' });
-    server.create('maintainer', {name: 'test-master' });
+    server.create('maintainer', { name: 'test-master' });
 
     visit(`${url}?query=test`);
 

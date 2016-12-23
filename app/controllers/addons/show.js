@@ -3,51 +3,43 @@ import sortBy from '../../utils/sort-by';
 import moment from 'moment';
 
 export default Ember.Controller.extend({
+  addon: Ember.computed.alias('model.addon'),
   showExplanation: false,
   showBadgeText: false,
   categories: function() {
     return this.get('store').peekAll('category').sortBy('displayName');
   }.property(),
-
-  //BUG: See https://github.com/emberjs/data/issues/2666
-  keywords: Ember.computed.filterBy('model.keywords', 'isDeleted', false),
-  maintainers: Ember.computed.filterBy('model.maintainers', 'isDeleted', false),
-
   licenseUrl: function() {
-    return `https://spdx.org/licenses/${this.get('model.license')}`;
-  }.property('model.license'),
-  sortedReviews: sortBy('model.reviews', 'versionReleased:desc'),
+    return `https://spdx.org/licenses/${this.get('addon.license')}`;
+  }.property('addon.license'),
+  sortedReviews: sortBy('addon.reviews', 'versionReleased:desc'),
   latestReview: Ember.computed.alias('sortedReviews.firstObject'),
   isLatestReleaseInLast3Months: function() {
-    if (!this.get('model.latestVersion.released')) { return false; }
+    if (!this.get('addon.latestVersion.released')) { return false; }
     var threeMonthsAgo = moment().subtract(3, 'months');
-    return moment(this.get('model.latestVersion.released')).isAfter(threeMonthsAgo);
-  }.property('model.latestVersion.released'),
+    return moment(this.get('addon.latestVersion.released')).isAfter(threeMonthsAgo);
+  }.property('addon.latestVersion.released'),
   isLatestReviewForLatestVersion: function() {
-    return this.get('latestReview') === this.get('model.latestVersion.review');
-  }.property('latestReview', 'model.latestVersion.review'),
+    return this.get('latestReview') === this.get('addon.latestVersion.review');
+  }.property('latestReview', 'addon.latestVersion.review'),
   badgeText: function() {
-    return `[![Ember Observer Score](https://emberobserver.com/badges/${this.get('model.name')}.svg)](https://emberobserver.com/addons/${this.get('model.name')})`;
-  }.property('model.name'),
+    return `[![Ember Observer Score](https://emberobserver.com/badges/${this.get('addon.name')}.svg)](https://emberobserver.com/addons/${this.get('addon.name')})`;
+  }.property('addon.name'),
   installCommandText: function() {
-    return `ember install ${this.get('model.name')}`;
-  }.property('model.name'),
+    return `ember install ${this.get('addon.name')}`;
+  }.property('addon.name'),
   badgeSrc: function() {
-    return `https://emberobserver.com/badges/${this.get('model.name')}.svg`;
-  }.property('model.name'),
-
-  latestTestResult: Ember.computed('model.sortedVersions.@each.latestTestResult', function() {
-    return this.get('model.sortedVersions').filter(version => version.get('latestTestResult')).get('firstObject.latestTestResult');
-  }),
-  isTestResultForLatestVersion: Ember.computed('latestTestResult.version', 'model.latestVersion', function() {
-    return this.get('latestTestResult.version.version') === this.get('model.latestVersion.version');
+    return `https://emberobserver.com/badges/${this.get('addon.name')}.svg`;
+  }.property('addon.name'),
+  isTestResultForLatestVersion: Ember.computed('model.latestTestResult.version', 'addon.latestVersion', function() {
+    return this.get('model.latestTestResult.version.version') === this.get('addon.latestVersion.version');
   }),
 
   actions: {
     save: function() {
       var controller = this;
       this.set('isSaving', true);
-      this.get('model').save().catch(function() {
+      this.get('addon').save().catch(function() {
         alert('Saving failed');
       }).finally(function() {
         controller.set('isSaving', false);
@@ -71,7 +63,7 @@ export default Ember.Controller.extend({
     },
     saveReview: function(newReview) {
       var controller = this;
-      newReview.set('version', this.get('model.latestVersion'));
+      newReview.set('version', this.get('addon.latestVersion'));
       newReview.save().catch(function() {
         alert('Saving failed');
       }).finally(function() {

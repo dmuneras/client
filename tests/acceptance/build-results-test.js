@@ -5,6 +5,7 @@ import moment from 'moment';
 moduleForAcceptance('Acceptance | build results');
 
 test('displays basic info about a build', function(assert) {
+  server.logging = true;
   let addon = server.create('addon');
   let addonVersion = server.create('version', { addonId: addon.id });
   server.create('testResult', {
@@ -27,16 +28,16 @@ test('sorts results by run date', function(assert) {
   let addon = server.create('addon');
   let addonVersion = server.create('version', { addonId: addon.id });
   let middleTestResult = server.create('testResult', {
-    testsRunAt: moment('2016-11-19 12:00:00').utc()
+    vesionId: addonVersion.id,
+    testsRunAt: moment().subtract(6, 'hours').utc()
   });
   let earliestTestResult = server.create('testResult', {
-    testsRunAt: moment('2016-11-19 00:00:01').utc()
+    versionId: addonVersion.id,
+    testsRunAt: moment().subtract(12, 'hours').utc()
   });
   let latestTestResult = server.create('testResult', {
-    testsRunAt: moment('2016-11-19 23:59:59').utc()
-  });
-  addonVersion.update({
-    testResultIds: [ middleTestResult.id, earliestTestResult.id, latestTestResult.id ]
+    versionId: addonVersion.id,
+    testsRunAt: moment().utc()
   });
 
   login();
@@ -52,17 +53,16 @@ test('sorts results by run date', function(assert) {
 test('displays appropriate status based on result', function(assert) {
   let addon = server.create('addon');
   let addonVersion = server.create('version', { addonId: addon.id });
-  let timedOutResult = server.create('testResult', {
+  server.create('testResult', {
+    versionId: addonVersion.id,
     succeeded: false,
     statusMessage: 'timed out',
     testsRunAt: moment().subtract(30, 'minutes').utc()
   });
-  let succeededResult = server.create('testResult', {
+  server.create('testResult', {
+    versionId: addonVersion.id,
     succeeded: true,
     testsRunAt: moment().subtract(1, 'hour').utc()
-  });
-  addonVersion.update({
-    testResultIds: [ timedOutResult.id, succeededResult.id ]
   });
 
   login();
@@ -116,37 +116,6 @@ test('displays appropriate indication for canary builds', function(assert) {
   click('.test-build-result a:contains(details)');
   andThen(function() {
     assert.containsExactly('.test-semver-string', 'canary', 'displays indication for canary builds in detail');
-  });
-});
-
-test('links to previous day', function(assert) {
-  let yesterday = moment().subtract(1, 'day').utc().format('Y-M-D');
-
-  login();
-  visit('/admin/build-results');
-
-  andThen(function() {
-    assert.exists(`a[href="/admin/build-results?date=${yesterday}"]`, 'has a link to the results for the previous day');
-  });
-});
-
-test('links to following day if not viewing the current date', function(assert) {
-  login();
-  visit('/admin/build-results?date=2016-11-18');
-
-  andThen(function() {
-    assert.exists('a[href="/admin/build-results?date=2016-11-19"]', 'has a link to the results for the following day');
-  });
-});
-
-test('does not link to following day if viewing the current date', function(assert) {
-  let tomorrow = moment().add(1, 'day').utc().format('Y-M-D');
-
-  login();
-  visit('/admin/build-results');
-
-  andThen(function() {
-    assert.notExists(`a[href="/admin/build-results?date=${tomorrow}"]`, 'does not have a link to the results for the following day');
   });
 });
 

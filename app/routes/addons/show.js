@@ -3,16 +3,27 @@ import scrollFix from '../../mixins/scroll-fix';
 
 export default Ember.Route.extend(scrollFix, {
   model: function(params) {
-    return this.get('store').queryRecord('addon', { name: params.name }, { reload: true });
+    let addon = this.get('store').query('addon', { filter: { name: params.name }, include: 'versions,maintainers,keywords,reviews,reviews.version,categories', page: { limit: 1 }}, { reload: true }).then((addons) => {
+      return addons.get('firstObject');
+    });
+
+    let latestTestResult = this.get('store').query('test-result', { filter: { canary: false, addonName: params.name }, sort: '-createdAt', page: { limit: 1 }, include: 'ember-version-compatibilities'}).then((results) => {
+      return results.get('firstObject');
+    });
+
+    return Ember.RSVP.hash({
+      addon,
+      latestTestResult
+    });
   },
 
   titleToken: function(model) {
-    return model.get('name');
+    if (model && model.addon) {
+      return model.addon.get('name');
+    }
   },
 
-  afterModel: function(model) {
-    this.get('store').query('keyword', { addon_id: model.get('id') });
-    this.get('store').query('version', { addon_id: model.get('id') });
+  afterModel: function() {
     this.get('emberVersions').fetch();
   },
   emberVersions: Ember.inject.service(),

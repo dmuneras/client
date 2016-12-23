@@ -6,7 +6,9 @@ export default Ember.Component.extend({
 
   versionCompatibilitiesForReleasedVersions: Ember.computed('testResult.emberVersionCompatibilities.@each.emberVersion', function() {
     return this.get('testResult.emberVersionCompatibilities')
-      .filter(versionCompatibility => !versionCompatibility.get('emberVersion').match(/(beta|canary)/));
+      .filter((versionCompatibility) =>  {
+        return !versionCompatibility.get('emberVersion').match(/(beta|canary)/);
+      });
   }),
 
   sortedVersionCompatibilities: Ember.computed('versionCompatibilitiesForReleasedVersions.@each.emberVersion', function() {

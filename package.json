@@ -19,7 +19,6 @@
   "author": "",
   "license": "MIT",
   "devDependencies": {
-    "active-model-adapter": "2.1.1",
     "broccoli-asset-rev": "^2.4.5",
     "broccoli-jscs": "1.4.1",
     "ember-ajax": "^2.4.1",

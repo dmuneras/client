@@ -78,19 +78,17 @@ test('displays note', function(assert) {
 });
 
 test('displays categories', function(assert) {
-  server.logging = true;
+  let categoryA = server.create('category', {
+    name: 'A category for categories'
+  });
+
+  let categoryB = server.create('category', {
+    name: 'Another category for categories'
+  });
+
   var addon = server.create('addon', {
-    name: 'test-addon-with-categories'
-  });
-
-  server.create('category', {
-    name: 'A category for categories',
-    addonIds: [addon.id]
-  });
-
-  server.create('category', {
-    name: 'Another category for categories',
-    addonIds: [addon.id]
+    name: 'test-addon-with-categories',
+    categoryIds: [categoryA.id, categoryB.id]
   });
 
   visit(`/addons/${addon.name}`);
@@ -186,15 +184,15 @@ test('displays review', function(assert) {
   });
 
   var addonVersion = server.create('version', {
-    addonId: addonWithReview.id,
-    reviewId: review.id,
+    addon: addonWithReview,
+    review: review,
     released: window.moment().subtract(3, 'months')
   });
 
   //Newer version without review
   server.create('version', {
-    addonId: addonWithReview.id,
-    reviewId: null,
+    addon: addonWithReview,
+    review: null,
     released: window.moment().subtract(1, 'months')
   });
 
@@ -221,9 +219,9 @@ test('displays review', function(assert) {
 });
 
 test('displays addon stats', function(assert) {
-  server.logging = true;
   var maintainers = server.createList('maintainer', 3);
 
+  var keywords = server.createList('keyword', 5);
   var addon = server.create('addon', {
     name: 'test-addon',
     maintainerIds: maintainers.map((m) => m.id),
@@ -232,7 +230,8 @@ test('displays addon stats', function(assert) {
     lastMonthDownloads: 1564,
     demoUrl: 'http://www.example.com/demo_of_addon',
     repositoryUrl: 'http://www.example.com/addon_repo',
-    license: 'MIT'
+    license: 'MIT',
+    keywords: keywords
   });
 
   server.create('version', {
@@ -259,8 +258,6 @@ test('displays addon stats', function(assert) {
 
     return [version, olderVersion];
   });
-
-  server.createList('keyword', 5, { addonIds: [addon.id] });
 
   visit(`/addons/${addon.name}`);
 

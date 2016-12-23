@@ -1,17 +1,3 @@
-<section class="admin-build-result-nav">
-  {{#link-to 'admin.build-results.index' (query-params date=formattedPreviousDate) class='previous-day'}}
-    &laquo; previous day
-  {{/link-to}}
-
-  Builds for {{formattedDisplayDate}}
-
-  {{#if showFollowingDayLink}}
-    {{#link-to 'admin.build-results.index' (query-params date=formattedFollowingDate) class='next-day'}}
-      next day &raquo;
-    {{/link-to}}
-  {{/if}}
-</section>
-
 <table>
   <thead>
     <tr>
